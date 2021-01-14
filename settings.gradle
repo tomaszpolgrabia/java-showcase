@@ -1,0 +1,3 @@
+rootProject.name = 'java-showcase'
+include 'javafx-demo1'
+
