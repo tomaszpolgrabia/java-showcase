@@ -1,19 +1,20 @@
 package ch.tpolgrabia.javashowcase.javafxdemo;
 
-import ch.tpolgrabia.javashowcase.javafxdemo.controllers.LoginController;
+import ch.tpolgrabia.javashowcase.javafxdemo.models.SwitchToHomeEvent;
+import ch.tpolgrabia.javashowcase.javafxdemo.models.SwitchToLoginEvent;
+import ch.tpolgrabia.javashowcase.javafxdemo.services.SceneFactory;
+import ch.tpolgrabia.javashowcase.javafxdemo.services.SceneFactoryImpl;
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 // TODO add event bus like system to switch between views and add messaging
+// TODO add guice to provide better factory style di-injection.
 public class JavaFxApplication extends Application {
     private Stage stage;
-    private FXMLLoader loader;
+    private EventBus eventBus;
+    private SceneFactory factory;
 
     public static void main(String[] args) {
         launch(args);
@@ -22,43 +23,28 @@ public class JavaFxApplication extends Application {
     @Override
     public void start(Stage stage) {
         this.stage = stage;
-        this.loader = new FXMLLoader();
-
-        switchToLogin();
+        this.eventBus = new EventBus();
+        this.eventBus.register(this);
+        this.factory = new SceneFactoryImpl(eventBus);
+        eventBus.post(new SwitchToLoginEvent());
     }
 
     @Override
     public void stop() {
         this.stage = null;
-        this.loader = null;
     }
 
-    private void switchToLogin() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("login.fxml")) {
-            var loader = new FXMLLoader();
-            Parent root = loader.load(is);
-            LoginController loginController = loader.getController();
-            loginController.setSwitchToHome(this::switchToHome);
-            var scene = new Scene(root, 640, 480);
-            stage.setScene(scene);
-            stage.show();
+    @Subscribe
+    public void switchToLogin(SwitchToLoginEvent event) {
+        stage.setScene(factory.loadLoginScene());
+        stage.show();
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
     }
 
-    public void switchToHome() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("home.fxml")) {
-            Parent root = loader.load(is);
-            var scene = new Scene(root, 640, 480);
-            stage.setScene(scene);
-            stage.show();
+    @Subscribe
+    public void switchToHome(SwitchToHomeEvent event) {
+        stage.setScene(factory.loadHomeScene());
+        stage.show();
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
     }
 }
